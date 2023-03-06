@@ -12,10 +12,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.mysqlclient.MySQLConnection;
 import io.vertx.mysqlclient.MySQLPool;
-import io.vertx.sqlclient.PoolOptions;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
-import io.vertx.sqlclient.SqlConnection;
+import io.vertx.sqlclient.*;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -37,53 +34,23 @@ public class Bootstrap {
 
         ConfigRetriever configRetriever = ConfigRetriever.create(vertx);
 
-        configRetriever.getConfig(ar -> {
-            if (ar.succeeded()) {
-
-                JsonObject config = ar.result();
-
-                MySQLConnectOptions dbConnOptions = new MySQLConnectOptions()
-                        .setHost(config.getString("host"))
-                        .setPort(config.getInteger("port"))
-                        .setDatabase(config.getString("database"))
-                        .setUser(config.getString("user"))
-                        .setPassword(config.getString("password"));
-
-                PoolOptions poolOptions = new PoolOptions()
-                        .setMaxSize(5);
-
-                MySQLPool client = MySQLPool.pool(vertx, dbConnOptions, poolOptions);
-
-                client.getConnection(ar1 -> {
-                    if (ar1.succeeded()) {
-                        SqlConnection conn = ar1.result();
-                        conn.query("select * from block order by num desc limit 20")
-                                .execute(ar2 -> {
-                                    conn.close();
-                                    if (ar2.succeeded()) {
-                                        List<Block> result = new ArrayList<>();
-                                        ar2.result().forEach(e -> {
-                                            Block blk = new Block();
-                                            blk.setNumber(e.getLong("num"));
-                                            blk.setHash(e.getString("block_hash"));
-                                            blk.setParentHash(e.getString("parent_hash"));
-                                            System.out.println(e.toString());
-                                            result.add(blk);
-                                        });
-
-//            vertx.deployVerticle(new BlockCacheVerticle());
-                                    } else {
-                                        System.out.println("查询失败！原因：" + ar2.cause());
-                                    }
-                                });
-                    } else {
-                        System.out.println("获取db链接失败！");
-                    }
+        getConfig(configRetriever)
+                .compose(conf -> getDbClient(vertx, conf))
+                .compose(ar -> getConn(ar))
+                .compose(con -> getLatestBlocks(con, 20))
+                .onSuccess(rows -> {
+                    List<Block> result = new ArrayList<>();
+                    rows.forEach(e -> {
+                        Block blk = new Block();
+                        blk.setNumber(e.getLong("num"));
+                        blk.setHash(e.getString("block_hash"));
+                        blk.setParentHash(e.getString("parent_hash"));
+                        System.out.println(e.toString());
+                        result.add(blk);
+                    });
+                }).onFailure(s -> {
+                    System.out.println(s);
                 });
-            } else {
-
-            }
-        });
 
 //    HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions()
 //            .setConnectTimeout(3000)
@@ -124,5 +91,61 @@ public class Bootstrap {
         }));
     }
 
+    private static Future<SqlConnection> getConn(MySQLPool client) {
+        Promise<SqlConnection> promise = Promise.promise();
+        client.getConnection(ar -> {
+            if (ar.succeeded()) {
+                SqlConnection conn = ar.result();
+                //关键代码
+                promise.complete(conn);
+            } else {
+                promise.fail(ar.cause());
+            }
+        });
+        //关键代码
+        return promise.future();
+    }
 
+    private static Future<RowSet<Row>> getLatestBlocks(SqlConnection conn, int limit) {
+        Promise<RowSet<Row>> promise = Promise.promise();
+        conn.preparedQuery("select * from block order by num desc limit ?")
+                .execute(Tuple.of(limit), ar2 -> {
+                    conn.close();
+                    if (ar2.succeeded()) {
+                        promise.complete(ar2.result());
+                    } else {
+                        promise.fail("查询失败，原因是：" + ar2.cause());
+                    }
+                });
+        return promise.future();
+    }
+
+    private static Future<JsonObject> getConfig(ConfigRetriever configRetriever) {
+        Promise<JsonObject> promise = Promise.promise();
+        configRetriever.getConfig(ar -> {
+            if (ar.succeeded()) {
+                promise.complete(ar.result());
+            } else {
+                promise.fail(ar.cause());
+            }
+        });
+        return promise.future();
+    }
+
+    private static Future<MySQLPool> getDbClient(Vertx vertx, JsonObject config) {
+        Promise<MySQLPool> promise = Promise.promise();
+        MySQLConnectOptions dbConnOptions = new MySQLConnectOptions()
+                .setHost(config.getString("host"))
+                .setPort(config.getInteger("port"))
+                .setDatabase(config.getString("database"))
+                .setUser(config.getString("user"))
+                .setPassword(config.getString("password"));
+
+        PoolOptions poolOptions = new PoolOptions()
+                .setMaxSize(5);
+
+        MySQLPool client = MySQLPool.pool(vertx, dbConnOptions, poolOptions);
+        promise.complete(client);
+        return promise.future();
+    }
 }
