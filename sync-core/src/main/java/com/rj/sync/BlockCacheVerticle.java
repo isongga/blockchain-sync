@@ -16,7 +16,7 @@ public class BlockCacheVerticle extends AbstractVerticle {
     private List<Block> blkCache = new ArrayList<>();
     private Boolean isReverting = false;
 
-    public BlockCacheVerticle(JsonRpcHttpClient webClient) {
+    public BlockCacheVerticle() {
 
     }
 
