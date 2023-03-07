@@ -1,5 +1,6 @@
 package com.rj.sync;
 
+import ch.qos.logback.classic.Logger;
 import com.googlecode.jsonrpc4j.JsonRpcHttpClient;
 import com.rj.sync.event.codec.EventCodec;
 import com.rj.sync.model.Block;
@@ -13,6 +14,7 @@ import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.mysqlclient.MySQLConnection;
 import io.vertx.mysqlclient.MySQLPool;
 import io.vertx.sqlclient.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -21,8 +23,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class Bootstrap {
     public static void main(String[] args) throws MalformedURLException {
+        log.info("开始启动。。。。");
         Vertx vertx = Vertx.vertx(new VertxOptions()
                 .setMaxEventLoopExecuteTime(10_000_000_000L)
                 .setWarningExceptionTime(5_000_000_000L)
@@ -49,7 +53,7 @@ public class Bootstrap {
                         result.add(blk);
                     });
                 }).onFailure(s -> {
-                    System.out.println(s);
+                    System.out.println("》》》异常："+s);
                 });
 
 //    HttpClient httpClient = vertx.createHttpClient(new HttpClientOptions()
@@ -78,7 +82,7 @@ public class Bootstrap {
         CompositeFuture future = CompositeFuture.join(
                 deplySync,
                 deplyBlkCache);
-        future.onSuccess((f) -> System.out.println("Startup complete!"));
+        future.onSuccess((f) -> log.info("Startup complete!"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutting down...");
@@ -99,6 +103,7 @@ public class Bootstrap {
                 //关键代码
                 promise.complete(conn);
             } else {
+                System.out.println("db链接不成功");
                 promise.fail(ar.cause());
             }
         });
