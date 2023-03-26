@@ -21,7 +21,7 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
 
-        <main.verticle>com.rj.sync.SyncVerticle</main.verticle>
+        <main.verticle>com.rj.sync.SyncNewestBlockVerticle</main.verticle>
         <launcher.class>io.vertx.core.SyncVerticle</launcher.class>
     </properties>
 
@@ -37,11 +37,6 @@
 
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-jdbc-client</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.vertx</groupId>
             <artifactId>vertx-mysql-client</artifactId>
         </dependency>
 
@@ -50,7 +45,10 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
-
+        <dependency>
+            <groupId>org.web3j</groupId>
+            <artifactId>core</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.github.briandilley.jsonrpc4j</groupId>

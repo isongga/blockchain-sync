@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.util.List;
 /**
+ * 对应go版本中的BlockJson
  * eg.
  * {
  *     "jsonrpc": "2.0",
@@ -55,4 +56,7 @@ public class OriginalBlock {
     private List<OriginalTx> transactions;
     private String transactionsRoot;
     private List<Block> uncles;
+
+    //记录获取到区块的时间
+    private final long createdTime = System.currentTimeMillis();
 }

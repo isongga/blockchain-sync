@@ -17,6 +17,7 @@
     <maven.compiler.target>11</maven.compiler.target>
 
     <vertx.version>4.2.7</vertx.version>
+    <web3j.version>4.8.7</web3j.version>
   </properties>
 
 
@@ -65,10 +66,23 @@
         <version>3.5.11</version>
       </dependency>
 
+      <!--vertx logging-->
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
         <version>1.2.3</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.web3j</groupId>
+        <artifactId>core</artifactId>
+        <version>${web3j.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.12.0</version>
       </dependency>
 
     </dependencies>
